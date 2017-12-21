@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
+using MaterialForms.Mappers;
 using MaterialForms.Wpf.Controls;
 using MaterialForms.Wpf.Resources;
 
@@ -110,6 +111,11 @@ namespace MaterialForms.Wpf.Fields.Defaults
                     if (context.GetContextInstance() is IActionHandler contextHandler)
                         contextHandler.HandleAction(model, actionName, arg);
 
+                    foreach (var mapper in Mapper.Mappers.Where(i => model.GetType().GetParentTypes().Any(o => o.FullName == i.Type.FullName)))
+                    {
+                        mapper.HandleAction(model, actionName, arg);
+                    }
+                    
                     break;
                 case ICommand command:
                     command.Execute(arg);

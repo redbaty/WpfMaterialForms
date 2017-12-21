@@ -16,11 +16,13 @@ namespace MaterialForms.Mappers
         /// </summary>
         public static Dictionary<string, List<Mapper>> TypesOverrides { get; set; } =
             new Dictionary<string, List<Mapper>>();
+        
+        public static List<MaterialMapper> Mappers { get; set; }
 
         /// <summary>
         ///     This mapper attribute expression
         /// </summary>
-        public Expression<Func<Attribute>> Expression { get; set; }
+        public Expression<Func<Attribute>>[] Expression { get; set; }
 
         /// <summary>
         ///     This mapper property info
@@ -35,9 +37,9 @@ namespace MaterialForms.Mappers
             var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).Where(i =>
                 i.IsClass && !i.ContainsGenericParameters && i.IsSubclassOf(typeof(MaterialMapper))).ToList();
 
-            var instant = types.Select(Activator.CreateInstance).OfType<MaterialMapper>();
+            Mappers = types.Select(Activator.CreateInstance).OfType<MaterialMapper>().ToList();
 
-            foreach (var type in instant)
+            foreach (var type in Mappers)
                 type.Include();
         }
     }

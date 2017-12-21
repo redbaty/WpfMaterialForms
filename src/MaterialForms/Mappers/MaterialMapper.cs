@@ -3,17 +3,27 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using MaterialForms.Wpf.Annotations;
 
 namespace MaterialForms.Mappers
 {
     public class MaterialMapper
     {
+        /// <summary>
+        /// Automatically hides elements that are not defined already.
+        /// </summary>
+        public bool AutoHide { get; set; } = false;
+
         public MaterialMapper(Type type)
         {
             Type = type;
         }
 
         public MaterialMapper()
+        {
+        }
+
+        internal virtual void HandleAction(object model, string action, object parameter)
         {
         }
 
@@ -27,8 +37,23 @@ namespace MaterialForms.Mappers
         {
             if (Type == null) return;
 
+
             var fullName = Type.FullName;
             if (fullName == null) return;
+
+
+            foreach (var propertyInfo in Type.GetProperties().Except(Mappings.Select(i => i.PropertyInfo)))
+            {
+                var mapper = new Mapper
+                {
+                    Expression = new List<Expression<Func<Attribute>>>
+                    {
+                        () => new FieldAttribute{IsVisible = false}
+                    }.ToArray(),
+                    PropertyInfo = propertyInfo
+                };
+                Mappings.Add(mapper);
+            }
 
             if (!Mapper.TypesOverrides.ContainsKey(fullName))
                 Mapper.TypesOverrides.Add(fullName, Mappings);
@@ -47,14 +72,35 @@ namespace MaterialForms.Mappers
         {
         }
 
+        public virtual void Action(TSource model, string action, object parameter)
+        {
+        }
+
+        internal override void HandleAction(object model, string action, object parameter)
+        {
+            var obj = (TSource) Activator.CreateInstance(typeof(TSource).AddParameterlessConstructor());
+            Action((TSource) model.CopyTo(obj), action, parameter);
+        }
+
+        public void AddClassAttribute(params Expression<Func<Attribute>>[] expression)
+        {
+            var mapper = new Mapper
+            {
+                PropertyInfo = null,
+                Expression = expression
+            };
+
+            Mappings.Add(mapper);
+        }
+
         /// <summary>
         ///     Adds a mapper.
         /// </summary>
         /// <typeparam name="TProperty"></typeparam>
         /// <param name="expression"></param>
         /// <param name="propertyLambda"></param>
-        public void AddMapper<TProperty>(Expression<Func<Attribute>> expression,
-            Expression<Func<TSource, TProperty>> propertyLambda)
+        public void AddPropertyAttribute<TProperty>(Expression<Func<TSource, TProperty>> propertyLambda,
+            params Expression<Func<Attribute>>[] expression)
         {
             var type = typeof(TSource);
 
